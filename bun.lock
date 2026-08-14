@@ -5,12 +5,12 @@
     "": {
       "name": "tv-dashboard",
       "devDependencies": {
-        "@sveltejs/vite-plugin-svelte": "^7.3.0",
+        "@sveltejs/vite-plugin-svelte": "7.3.0",
         "@xmldom/xmldom": "0.9.11",
         "node-forge": "1.4.0",
-        "svelte": "^5.38.0",
-        "typescript": "~7.0.2",
-        "vite": "^8.2.1",
+        "svelte": "5.56.9",
+        "typescript": "7.0.2",
+        "vite": "8.2.1",
       },
     },
   },

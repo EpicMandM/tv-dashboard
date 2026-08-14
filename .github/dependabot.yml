@@ -4,3 +4,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # package.json uses exact pins (no ^/~). increase keeps those pins
+    # exact when bumping; Dependabot does not read bunfig.toml.
+    versioning-strategy: increase
+    cooldown:
+      default-days: 3
