@@ -1,0 +1,22 @@
+{
+  "name": "tv-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "package": "bun run build && bun scripts/tv.ts package",
+    "deploy": "bun run build && bun scripts/tv.ts deploy",
+    "launch": "bun scripts/tv.ts launch"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "node-forge": "0.10.0",
+    "svelte": "^5.38.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "xmldom": "0.6.0"
+  }
+}

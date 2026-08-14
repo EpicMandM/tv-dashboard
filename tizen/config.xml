@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://local/tv-dashboard" version="1.0.0" viewmodes="maximized">
+  <name>Панель</name>
+  <description>Фоновая панель для телевизора</description>
+  <content src="index.html"/>
+  <icon src="icon.png"/>
+  <access origin="*" subdomains="true"/>
+  <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+  <tizen:application id="TVAMBNT001.Dashboard" package="TVAMBNT001" required_version="5.5"/>
+  <tizen:profile name="tv-samsung"/>
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" hwkey-event="enable"/>
+  <tizen:content-security-policy>default-src *; script-src 'self'; connect-src *; style-src 'self' 'unsafe-inline'; img-src 'self' data:;</tizen:content-security-policy>
+</widget>
