@@ -155,6 +155,52 @@ function stripWhereSelectors(): Plugin {
   };
 }
 
+function quotedAttr(tag: string, name: string): string | null {
+  const key = name + '="';
+  const at = tag.toLowerCase().indexOf(key);
+  if (at === -1) return null;
+  const start = at + key.length;
+  const end = tag.indexOf('"', start);
+  return end === -1 ? null : tag.slice(start, end);
+}
+
+function toClassicScripts(html: string): string {
+  const lower = html.toLowerCase();
+  let src = '';
+  let out = '';
+  let i = 0;
+  while (i < html.length) {
+    const start = lower.indexOf('<script', i);
+    if (start === -1) {
+      out += html.slice(i);
+      break;
+    }
+    out += html.slice(i, start);
+    const openEnd = html.indexOf('>', start);
+    const closeStart = openEnd === -1 ? -1 : lower.indexOf('</script', openEnd + 1);
+    const closeEnd = closeStart === -1 ? -1 : html.indexOf('>', closeStart);
+    if (openEnd === -1 || closeEnd === -1) {
+      out += html.slice(start);
+      break;
+    }
+    const value = quotedAttr(html.slice(start, openEnd + 1), 'src');
+    const empty = html.slice(openEnd + 1, closeStart).trim() === '';
+    if (value && empty) {
+      if (!src) src = value;
+      i = closeEnd + 1;
+      while (i < html.length && (html[i] === ' ' || html[i] === '\t' || html[i] === '\n' || html[i] === '\r')) i += 1;
+      continue;
+    }
+    out += html.slice(start, closeEnd + 1);
+    i = closeEnd + 1;
+  }
+  const classic = '    <script src="' + (src || './app.js') + '"></script>\n';
+  const body = out.indexOf('</body>');
+  return body === -1
+    ? out + classic
+    : out.slice(0, body) + classic + '  </body>' + out.slice(body + '</body>'.length);
+}
+
 function tizenHtml(): Plugin {
   return {
     name: 'tizen-html',
@@ -162,14 +208,7 @@ function tizenHtml(): Plugin {
     transformIndexHtml: {
       order: 'post',
       handler(html) {
-        html = html.replace(/\s+crossorigin(?:="[^"]*")?/g, '');
-        const match = html.match(/<script[^>]*src="([^"]+)"[^>]*><\/script>/);
-        const src = match ? match[1] : './app.js';
-        const withoutScript = html.replace(/<script[^>]*src="[^"]+"[^>]*><\/script>\s*/g, '');
-        const classic = '    <script src="' + src + '"></script>\n';
-        return withoutScript.indexOf('</body>') === -1
-          ? withoutScript + classic
-          : withoutScript.replace('</body>', classic + '  </body>');
+        return toClassicScripts(html.replace(/\s+crossorigin(?:="[^"]*")?/g, ''));
       }
     }
   };

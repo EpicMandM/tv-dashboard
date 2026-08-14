@@ -28,20 +28,31 @@ const TIMEOUT_MS = 8000;
 export function isDashboard(value: unknown): value is Dashboard {
   if (!value || typeof value !== 'object') return false;
   const p = value as Record<string, unknown>;
-  if (typeof p.summary !== 'string') return false;
+  if (typeof p.summary !== 'string' || p.summary.length > 800) return false;
   if (p.status !== 'ready' && p.status !== 'running' && p.status !== 'error' && p.status !== 'degraded') {
     return false;
   }
-  if (p.action !== undefined && typeof p.action !== 'string') return false;
+  if (p.action !== undefined && (typeof p.action !== 'string' || p.action.length > 64)) return false;
   if (p.columns !== undefined && p.columns !== null) {
     if (!Array.isArray(p.columns) || p.columns.length > 3) return false;
+    const titles: Record<string, true> = {};
     for (let i = 0; i < p.columns.length; i += 1) {
       const col = p.columns[i] as { title?: unknown; items?: unknown };
-      if (!col || typeof col.title !== 'string' || !col.title || !Array.isArray(col.items) || !col.items.length) {
+      if (
+        !col ||
+        typeof col.title !== 'string' ||
+        !col.title ||
+        col.title.length > 80 ||
+        titles[col.title] ||
+        !Array.isArray(col.items) ||
+        !col.items.length ||
+        col.items.length > 12
+      ) {
         return false;
       }
+      titles[col.title] = true;
       for (let j = 0; j < col.items.length; j += 1) {
-        if (typeof col.items[j] !== 'string' || !col.items[j]) return false;
+        if (typeof col.items[j] !== 'string' || !col.items[j] || col.items[j].length > 220) return false;
       }
     }
   }
@@ -49,7 +60,16 @@ export function isDashboard(value: unknown): value is Dashboard {
   const seen: Record<string, true> = {};
   for (let i = 0; i < p.actions.length; i += 1) {
     const a = p.actions[i] as { id?: unknown; title?: unknown };
-    if (!a || typeof a.id !== 'string' || !a.id || typeof a.title !== 'string' || !a.title || seen[a.id]) {
+    if (
+      !a ||
+      typeof a.id !== 'string' ||
+      !a.id ||
+      a.id.length > 64 ||
+      typeof a.title !== 'string' ||
+      !a.title ||
+      a.title.length > 80 ||
+      seen[a.id]
+    ) {
       return false;
     }
     seen[a.id] = true;
@@ -62,13 +82,14 @@ export function loadCache(): Dashboard | null {
     const raw = localStorage.getItem(CACHE);
     if (!raw) return null;
     const data: unknown = JSON.parse(raw);
-    return isDashboard(data) ? data : null;
+    return isDashboard(data) && data.status !== 'running' ? data : null;
   } catch {
     return null;
   }
 }
 
 export function saveCache(data: Dashboard): void {
+  if (data.status === 'running') return;
   try {
     localStorage.setItem(CACHE, JSON.stringify(data));
   } catch {}
@@ -84,7 +105,9 @@ function apiUrl(path: string): string {
 
 async function request(path: string, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
+  let timedOut = false;
   const timer = window.setTimeout(function () {
+    timedOut = true;
     controller.abort();
   }, TIMEOUT_MS);
   const extra = init && init.signal;
@@ -100,10 +123,15 @@ async function request(path: string, init?: RequestInit): Promise<Response> {
       method: init && init.method ? init.method : 'GET',
       body: init ? init.body : undefined,
       signal: controller.signal,
+      cache: 'no-store',
       headers: { Accept: 'application/json' }
     });
     if (!response.ok) throw new Error('HTTP ' + response.status);
     return response;
+  } catch (err) {
+    if (extra && extra.aborted) throw err;
+    if (timedOut && isAbortError(err)) throw new Error('timeout');
+    throw err;
   } finally {
     window.clearTimeout(timer);
     if (extra) extra.removeEventListener('abort', onAbort);

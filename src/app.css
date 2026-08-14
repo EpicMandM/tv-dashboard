@@ -185,7 +185,6 @@ body {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.12s linear, opacity 0.12s linear, border-color 0.12s linear;
 }
 
 .actions button.is-selected,
@@ -194,11 +193,9 @@ body {
   background: #243044;
   outline: 4px solid #8ec0ff;
   outline-offset: 4px;
-  transform: scale(1.02);
 }
 
 .actions button.is-running {
-  opacity: 1;
   border-color: #e6c35c;
   outline: 4px solid #e6c35c;
   outline-offset: 4px;

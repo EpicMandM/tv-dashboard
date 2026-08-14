@@ -41,7 +41,7 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   });
   const statusState = $derived(
-    dashboard.status === 'running' || connection === 'updating'
+    dashboard.status === 'running' || dashboard.status === 'degraded' || connection === 'updating'
       ? 'updating'
       : connection === 'offline' || dashboard.status === 'error'
         ? 'offline'
@@ -91,6 +91,11 @@
 
   function apply(next: Dashboard) {
     const prev = dashboard;
+    const nextKey = screenKey(next);
+    const prevKey = screenKey(prev);
+    if (prev.status === next.status && (prev.action || '') === (next.action || '') && nextKey === prevKey) {
+      return;
+    }
     const prevId = selectedId;
     dashboard = next;
     saveCache(next);
@@ -98,7 +103,7 @@
     else if (hasId(next.actions, prevId)) selectedId = prevId;
     else if (hasId(next.actions, 'home')) selectedId = 'home';
     else selectedId = next.actions[0] ? next.actions[0].id : '';
-    if (screenKey(next) !== screenKey(prev) && next.status !== 'error') notice = '';
+    if (nextKey !== prevKey && next.status !== 'error') notice = '';
     if (selectedId !== prevId) void focusSelected();
   }
 
@@ -131,7 +136,6 @@
         continue;
       }
       if (
-        id === 'home' ||
         next.status === 'error' ||
         next.status === 'degraded' ||
         seenRunning ||
@@ -177,7 +181,7 @@
       }
     } catch (err) {
       if (stopped || isAbortError(err)) return;
-      if (!silent) connection = 'offline';
+      connection = 'offline';
     } finally {
       refreshInFlight = false;
     }
@@ -316,7 +320,7 @@
 <svelte:window onkeydown={onKeydown} />
 
 <div class="viewport">
-  <div class="stage" style={'transform: scale(' + scale + ')'}>
+  <div class="stage" style={scale === 1 ? undefined : 'transform: scale(' + scale + ')'}>
     <header class="top">
       <time class="clock">{clock}</time>
       <div class={'status is-' + statusState}>
