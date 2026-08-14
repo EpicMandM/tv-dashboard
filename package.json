@@ -15,13 +15,8 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "node-forge": "1.4.0",
     "svelte": "^5.38.0",
-<<<<<<< HEAD
     "typescript": "~7.0.2",
-    "vite": "^6.3.5",
-=======
-    "typescript": "~5.8.3",
     "vite": "^8.2.1",
->>>>>>> origin/dependabot/bun/vite-8.2.1
     "xmldom": "0.6.0"
   }
 }
