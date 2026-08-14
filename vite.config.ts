@@ -3,7 +3,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isDashboard, SEED, type Dashboard, type DigestColumn } from './src/lib/tv';
+import { isDashboard, SEED, type Dashboard, type DigestColumn } from './src/lib/tv.ts';
 
 const SNAPSHOT_FILE = resolve(fileURLToPath(new URL('./data/tv.json', import.meta.url)));
 const PROGRESS: Record<string, string> = {
@@ -184,20 +184,19 @@ export default defineConfig({
     cssCodeSplit: false,
     modulePreload: false,
     sourcemap: false,
-    minify: 'esbuild',
+    minify: 'oxc',
     assetsInlineLimit: 4096,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         format: 'iife',
         name: 'TvDashboard',
-        inlineDynamicImports: true,
         entryFileNames: 'app.js',
         assetFileNames: 'app[extname]',
         banner: 'if(typeof globalThis==="undefined"){window.globalThis=window;}'
       }
     }
   },
-  esbuild: { target: 'chrome69' },
+  oxc: { target: 'chrome69' },
   server: { host: true, port: 5173 },
   preview: { host: true, port: 4173 }
 });
