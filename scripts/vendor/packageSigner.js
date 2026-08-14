@@ -1,7 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
-const Dom = require('xmldom').DOMParser;
+const Dom = require('@xmldom/xmldom').DOMParser;
 const ExclusiveCanonicalization = require('./exclusive-canonicalization').ExclusiveCanonicalization;
 
 const authorPropDgst = 'lpo8tUDs054eLlBQXiDPVDVKfw30ZZdtkRs1jd7H5K8=';
@@ -97,7 +97,7 @@ class Signature {
 
     const signWrapper =
       '<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">' + this.signedInfo + '</Signature>';
-    const xml = new Dom().parseFromString(signWrapper);
+    const xml = new Dom().parseFromString(signWrapper, 'application/xml');
     const canoned = new ExclusiveCanonicalization().process(xml.documentElement.firstChild, {
       defaultNsForPrefix: { ds: 'http://www.w3c.org/2000/09/xmldsig#' }
     });
