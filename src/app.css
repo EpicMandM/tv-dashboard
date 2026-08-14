@@ -67,10 +67,21 @@ body {
 
 .status.is-updating .status-dot {
   background: #e6c35c;
+  animation: status-pulse 1s linear infinite;
 }
 
 .status.is-offline .status-dot {
   background: #e07a7a;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 .status-notice {
@@ -80,13 +91,8 @@ body {
 
 .summary {
   flex: 1 1 auto;
-}
-
-.greeting {
-  margin: 0 0 28px;
-  font-size: 64px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .summary-text {
@@ -96,6 +102,67 @@ body {
   line-height: 1.35;
   color: #d5dee8;
   font-weight: 400;
+}
+
+.digest {
+  display: grid;
+  grid-gap: 28px;
+  height: 100%;
+  min-height: 0;
+}
+
+.digest-col {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 28px 28px 24px;
+  border: 1px solid #2a3646;
+  border-radius: 18px;
+  background: #171e28;
+}
+
+.digest-col h2 {
+  margin: 0 0 20px;
+  flex: 0 0 auto;
+  color: #8ec0ff;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.digest-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.digest-items li {
+  position: relative;
+  margin: 0 0 16px;
+  padding-left: 0.9em;
+  font-size: 30px;
+  line-height: 1.28;
+  color: #d5dee8;
+}
+
+.digest-items li:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.35em;
+  height: 0.35em;
+  border-radius: 50%;
+  background: #8ec0ff;
+}
+
+.actions-wrap {
+  flex: 0 0 auto;
+  margin-top: 36px;
 }
 
 .actions {
@@ -131,5 +198,8 @@ body {
 }
 
 .actions button.is-running {
-  opacity: 0.72;
+  opacity: 1;
+  border-color: #e6c35c;
+  outline: 4px solid #e6c35c;
+  outline-offset: 4px;
 }
