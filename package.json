@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "package": "bun run build && bun scripts/tv.ts package",
     "deploy": "bun run build && bun scripts/tv.ts deploy",
-    "launch": "bun scripts/tv.ts launch"
+    "launch": "bun scripts/tv.ts launch",
+    "watch": "bun scripts/tv.ts watch"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.0",

@@ -13,3 +13,5 @@ GET `/tv` = screen. POST `/actions/:id` → 204. `home` = back. Cached `plan-tom
 `VITE_API_BASE_URL` empty = mock. TV build: `.env.production` → `http://HOST:8787`.
 
 `TV_IP` required. Optional: `SDB`, `CERT_DIR`, `CERT_PASSWORD_FILE`.
+
+Power-on: Home Assistant `script.bedroom_tv_on` POSTs `http://127.0.0.1:8787/launch` after IR on. `tv-snapshot` waits until the TV is actually on, then launches the widget (`sdb was_execute`, HTTP, websocket) until it is visible. `bun run watch` is a host-side fallback.

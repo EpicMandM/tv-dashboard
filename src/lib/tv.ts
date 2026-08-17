@@ -22,7 +22,7 @@ export const SEED: Dashboard = {
   status: 'ready'
 };
 
-const CACHE = 'tv-dashboard-v4';
+const CACHE = 'tv-dashboard-v5';
 const TIMEOUT_MS = 8000;
 
 export function isDashboard(value: unknown): value is Dashboard {
@@ -82,14 +82,14 @@ export function loadCache(): Dashboard | null {
     const raw = localStorage.getItem(CACHE);
     if (!raw) return null;
     const data: unknown = JSON.parse(raw);
-    return isDashboard(data) && data.status !== 'running' ? data : null;
+    return isDashboard(data) && data.status === 'ready' ? data : null;
   } catch {
     return null;
   }
 }
 
 export function saveCache(data: Dashboard): void {
-  if (data.status === 'running') return;
+  if (data.status !== 'ready') return;
   try {
     localStorage.setItem(CACHE, JSON.stringify(data));
   } catch {}

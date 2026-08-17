@@ -10,6 +10,7 @@ interface ImportMeta {
 }
 
 interface TizenApplication {
+  hide(): void;
   exit(): void;
 }
 
@@ -17,11 +18,16 @@ interface TizenInputDevice {
   registerKey(keyName: string): void;
 }
 
+interface TizenTvWindow {
+  hide(successCallback?: () => void, errorCallback?: (err: unknown) => void, type?: string): void;
+}
+
 interface Tizen {
   application?: {
     getCurrentApplication(): TizenApplication;
   };
   tvinputdevice?: TizenInputDevice;
+  tvwindow?: TizenTvWindow;
 }
 
 interface Window {

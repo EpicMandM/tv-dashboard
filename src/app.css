@@ -70,6 +70,10 @@ body {
   animation: status-pulse 1s linear infinite;
 }
 
+.status.is-degraded .status-dot {
+  background: #e6c35c;
+}
+
 .status.is-offline .status-dot {
   background: #e07a7a;
 }

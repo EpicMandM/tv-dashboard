@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { createConnection } from 'node:net';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -166,8 +167,175 @@ function launch(): void {
   process.stdout.write(out);
 }
 
+function tvHost(): string {
+  const ip = process.env.TV_IP;
+  if (!ip || !ip.trim()) die('Set TV_IP in .env (see .env.example)');
+  return ip.trim();
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
+}
+
+function portOpen(host: string, port: number, timeoutMs: number): Promise<boolean> {
+  return new Promise(function (resolve) {
+    const sock = createConnection({ host, port });
+    let settled = false;
+    function done(ok: boolean) {
+      if (settled) return;
+      settled = true;
+      sock.removeAllListeners();
+      sock.destroy();
+      resolve(ok);
+    }
+    sock.setTimeout(timeoutMs);
+    sock.on('connect', function () {
+      done(true);
+    });
+    sock.on('timeout', function () {
+      done(false);
+    });
+    sock.on('error', function () {
+      done(false);
+    });
+  });
+}
+
+async function tvOnline(): Promise<boolean> {
+  const host = tvHost();
+  if (await portOpen(host, 8001, 1500)) return true;
+  return portOpen(host, 26101, 1500);
+}
+
+async function appVisible(): Promise<boolean | null> {
+  const url = 'http://' + tvHost() + ':8001/api/v2/applications/' + APP_ID;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = (await response.json()) as { visible?: boolean; running?: boolean };
+    if (typeof data.visible === 'boolean') return data.visible;
+    if (typeof data.running === 'boolean') return data.running;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function launchHttp(): Promise<boolean> {
+  const url = 'http://' + tvHost() + ':8001/api/v2/applications/' + APP_ID;
+  try {
+    const response = await fetch(url, { method: 'POST' });
+    return response.ok || response.status === 200 || response.status === 201;
+  } catch {
+    return false;
+  }
+}
+
+function sdbConnect(): boolean {
+  const serial = tvHost() + ':26101';
+  const connect = spawnSync(findSdb(), ['connect', serial], { encoding: 'utf8' });
+  return connect.status === 0;
+}
+
+function sdbShell(cmd: string, id: string): boolean {
+  if (!sdbConnect()) return false;
+  const exec = spawnSync(findSdb(), ['shell', '0', cmd, id], { encoding: 'utf8' });
+  const out = String(exec.stdout || '') + String(exec.stderr || '');
+  if (out) process.stdout.write(out);
+  return exec.status === 0;
+}
+
+function launchSdb(): boolean {
+  return sdbShell('was_execute', APP_ID);
+}
+
+function relaunchSdb(): boolean {
+  sdbShell('was_kill', APP_ID);
+  return sdbShell('was_execute', APP_ID);
+}
+
+async function launchWs(): Promise<boolean> {
+  const name = Buffer.from('TvDashboard').toString('base64');
+  const url =
+    'ws://' + tvHost() + ':8001/api/v2/channels/samsung.remote.control?name=' + encodeURIComponent(name);
+  return await new Promise(function (resolve) {
+    let settled = false;
+    function done(ok: boolean) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        ws.close();
+      } catch {}
+      resolve(ok);
+    }
+    const ws = new WebSocket(url);
+    const timer = setTimeout(function () {
+      done(false);
+    }, 4000);
+    ws.addEventListener('message', function (event) {
+      const raw = String(event.data);
+      if (raw.indexOf('ms.channel.connect') === -1) return;
+      try {
+        ws.send(
+          JSON.stringify({
+            method: 'ms.channel.emit',
+            params: {
+              event: 'ed.apps.launch',
+              to: 'host',
+              data: { appId: APP_ID, action_type: 'DEEP_LINK' }
+            }
+          })
+        );
+      } catch {
+        done(false);
+        return;
+      }
+      done(true);
+    });
+    ws.addEventListener('error', function () {
+      done(false);
+    });
+  });
+}
+
+async function bringToFront(forceRestart: boolean): Promise<void> {
+  const sdbOk = forceRestart ? relaunchSdb() : launchSdb();
+  if (sdbOk) console.log(forceRestart ? 'Relaunched via sdb' : 'Launched via sdb');
+  if (await launchHttp()) console.log('Launched via TV API');
+  if (await launchWs()) console.log('Launched via websocket');
+  if (!sdbOk) console.log('Launch failed (sdb)');
+}
+
+async function watch(): Promise<void> {
+  let wasOnline = false;
+  console.log('Watching ' + tvHost() + ' for power-on…');
+  for (;;) {
+    const online = await tvOnline();
+    if (online && !wasOnline) {
+      console.log('TV is on, bringing dashboard to front…');
+      const deadline = Date.now() + 90000;
+      let attempts = 0;
+      while (Date.now() < deadline && (await tvOnline())) {
+        if ((await appVisible()) === true) {
+          console.log('Dashboard is visible');
+          break;
+        }
+        attempts += 1;
+        await bringToFront(attempts > 2);
+        await sleep(4000);
+      }
+    }
+    wasOnline = online;
+    await sleep(4000);
+  }
+}
+
 const cmd = process.argv[2] || 'deploy';
 if (cmd === 'package') buildWgt();
 else if (cmd === 'deploy') deploy();
 else if (cmd === 'launch') launch();
-else die('Usage: bun scripts/tv.ts <package|deploy|launch>');
+else if (cmd === 'watch') void watch();
+else die('Usage: bun scripts/tv.ts <package|deploy|launch|watch>');

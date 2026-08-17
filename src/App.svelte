@@ -11,7 +11,7 @@
     type TvAction
   } from './lib/tv';
 
-  const SNAPSHOT_MS = 10 * 60 * 1000;
+  const SNAPSHOT_MS = 15 * 1000;
   const POLL_MS = 2000;
   const ACK_MS = 15 * 1000;
   const WAIT_MS = 11 * 60 * 1000;
@@ -41,11 +41,13 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   });
   const statusState = $derived(
-    dashboard.status === 'running' || dashboard.status === 'degraded' || connection === 'updating'
+    dashboard.status === 'running' || connection === 'updating'
       ? 'updating'
-      : connection === 'offline' || dashboard.status === 'error'
-        ? 'offline'
-        : 'online'
+      : dashboard.status === 'degraded'
+        ? 'degraded'
+        : connection === 'offline' || dashboard.status === 'error'
+          ? 'offline'
+          : 'online'
   );
   const statusLabel = $derived(
     dashboard.status === 'running'
@@ -77,9 +79,16 @@
     });
   }
 
-  function exitApp() {
-    const app = window.tizen && window.tizen.application && window.tizen.application.getCurrentApplication();
-    if (app) app.exit();
+  function coverTvWindow() {
+    const tvwindow = window.tizen && window.tizen.tvwindow;
+    if (!tvwindow) return;
+    try {
+      tvwindow.hide(
+        function () {},
+        function () {},
+        'MAIN'
+      );
+    } catch {}
   }
 
   async function focusSelected() {
@@ -156,7 +165,7 @@
   }
 
   async function refresh(silent: boolean) {
-    if (stopped || waiting || refreshInFlight) return;
+    if (stopped || refreshInFlight) return;
     refreshInFlight = true;
     if (!silent) connection = 'updating';
     try {
@@ -252,7 +261,6 @@
       if (selectedId) void onRun(selectedId);
     } else if (event.keyCode === BACK || event.keyCode === EXIT) {
       event.preventDefault();
-      exitApp();
     }
   }
 
@@ -274,6 +282,7 @@
     };
     armClock();
 
+    coverTvWindow();
     const input = window.tizen && window.tizen.tvinputdevice;
     if (input) {
       try {
@@ -282,9 +291,8 @@
     }
     const onHwKey = (event: Event) => {
       const keyName = (event as Event & { keyName?: string }).keyName;
-      if (keyName === 'back' || keyName === 'Back') {
+      if (keyName === 'back' || keyName === 'Back' || keyName === 'Exit') {
         event.preventDefault();
-        exitApp();
       }
     };
     window.addEventListener('tizenhwkey', onHwKey);
@@ -295,13 +303,15 @@
     const snapshotTimer = window.setInterval(function () {
       void refresh(true);
     }, SNAPSHOT_MS);
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        nowMs = Date.now();
-        void refresh(true);
-      }
+    const onForeground = () => {
+      if (document.visibilityState === 'hidden') return;
+      coverTvWindow();
+      nowMs = Date.now();
+      void refresh(false);
     };
-    document.addEventListener('visibilitychange', onVisibility);
+    document.addEventListener('visibilitychange', onForeground);
+    window.addEventListener('pageshow', onForeground);
+    window.addEventListener('focus', onForeground);
 
     return () => {
       stopped = true;
@@ -310,7 +320,9 @@
       abort.abort();
       window.removeEventListener('resize', fitScale);
       window.removeEventListener('tizenhwkey', onHwKey);
-      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onForeground);
+      window.removeEventListener('focus', onForeground);
+      document.removeEventListener('visibilitychange', onForeground);
       window.clearInterval(snapshotTimer);
       window.clearTimeout(clockTimer);
     };
