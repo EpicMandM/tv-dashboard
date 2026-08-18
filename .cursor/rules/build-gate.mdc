@@ -1,0 +1,10 @@
+---
+description: TV artifact check after every code change
+alwaysApply: true
+---
+
+# Build gate
+
+After any code change, `bun run build` must exit 0.
+
+This repo is Bun + Vite + Tizen. Do not add Python quality gates, `scripts/fix.py`, `check.py`, or `pyproject.toml`.

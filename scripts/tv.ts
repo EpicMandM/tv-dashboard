@@ -29,8 +29,6 @@ type P12 = {
 type P12Content = { privateKey: string; certChain: string[] };
 
 const root = join(import.meta.dir, '..');
-const PACKAGE_ID = 'TVAMBNT001';
-const APP_ID = 'TVAMBNT001.Dashboard';
 const WGT = join(root, 'tv-dashboard.wgt');
 const TV_PUSH = '/home/owner/share/tmp/sdk_tools/tv-dashboard.wgt';
 
@@ -48,6 +46,17 @@ function die(message: string): never {
   console.error(message);
   process.exit(1);
 }
+
+function idsFromConfig(): { packageId: string; appId: string } {
+  const xml = readFileSync(join(root, 'tizen', 'config.xml'), 'utf8');
+  const match = xml.match(/<tizen:application id="([^"]+)" package="([^"]+)"/);
+  if (!match) die('tizen/config.xml: missing tizen:application id/package');
+  return { appId: match[1], packageId: match[2] };
+}
+
+const ids = idsFromConfig();
+const PACKAGE_ID = ids.packageId;
+const APP_ID = ids.appId;
 
 function parseP12(file: string, password: string): P12Content {
   const p12 = forge.pkcs12.pkcs12FromAsn1(
@@ -333,7 +342,7 @@ async function watch(): Promise<void> {
   }
 }
 
-const cmd = process.argv[2] || 'deploy';
+const cmd = process.argv[2];
 if (cmd === 'package') buildWgt();
 else if (cmd === 'deploy') deploy();
 else if (cmd === 'launch') launch();

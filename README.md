@@ -2,16 +2,16 @@
 
 ```bash
 bun install
-bun run dev       # http://localhost:5173  mock = data/tv.json
+bun run dev       # Vite mock from data/tv.json
+bun run build     # TV artifact check
 bun run deploy    # build, sign, install, launch
 bun run package   # signed .wgt
 bun run launch
+bun run watch
 ```
 
-GET `/tv` = screen. POST `/actions/:id` → 204. `home` = back. Cached `plan-tomorrow` / `what-missed` switch the view; else host writes `running` then the result.
+GET `/tv` = screen. POST `/actions/:id` → 204. `home` = back.
 
-`VITE_API_BASE_URL` empty = mock. TV build: `.env.production` → `http://HOST:8787`.
+Empty `VITE_API_BASE_URL` = Vite mock from `data/tv.json`. TV **build** needs `.env.production` with `VITE_API_BASE_URL=http://HOST:8787` or the widget will talk to itself. `TV_IP` lives in `.env` (used by `scripts/tv.ts`). Optional `SDB`, `CERT_DIR`, `CERT_PASSWORD_FILE`. Package needs `sdb` + `zip` + Samsung p12 certs.
 
-`TV_IP` required. Optional: `SDB`, `CERT_DIR`, `CERT_PASSWORD_FILE`.
-
-Power-on: Home Assistant `script.bedroom_tv_on` POSTs `http://127.0.0.1:8787/launch` after IR on. `tv-snapshot` waits until the TV is actually on, then launches the widget (`sdb was_execute`, HTTP, websocket) until it is visible. `bun run watch` is a host-side fallback.
+Host `:8787` and Home Assistant power-on live in other repos.

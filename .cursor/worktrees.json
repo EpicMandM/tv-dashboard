@@ -1,0 +1,7 @@
+{
+  "setup-worktree-unix": [
+    "bun install",
+    "test -f \"$ROOT_WORKTREE_PATH/.env\" && cp \"$ROOT_WORKTREE_PATH/.env\" .env || true",
+    "test -f \"$ROOT_WORKTREE_PATH/.env.production\" && cp \"$ROOT_WORKTREE_PATH/.env.production\" .env.production || true"
+  ]
+}

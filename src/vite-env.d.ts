@@ -9,11 +9,6 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-interface TizenApplication {
-  hide(): void;
-  exit(): void;
-}
-
 interface TizenInputDevice {
   registerKey(keyName: string): void;
 }
@@ -23,9 +18,6 @@ interface TizenTvWindow {
 }
 
 interface Tizen {
-  application?: {
-    getCurrentApplication(): TizenApplication;
-  };
   tvinputdevice?: TizenInputDevice;
   tvwindow?: TizenTvWindow;
 }

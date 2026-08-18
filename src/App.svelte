@@ -5,6 +5,7 @@
     isAbortError,
     loadCache,
     runAction,
+    sameView,
     saveCache,
     SEED,
     type Dashboard,
@@ -18,7 +19,7 @@
   const BACK = 10009;
   const EXIT = 10182;
 
-  const initial = loadCache() ?? SEED;
+  const initial = loadCache() || SEED;
   let dashboard = $state.raw(initial);
   let selectedId = $state(initial.actions[0] ? initial.actions[0].id : '');
   let connection = $state<'online' | 'updating' | 'offline'>('updating');
@@ -40,33 +41,19 @@
     const m = d.getMinutes();
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   });
-  const statusState = $derived(
-    dashboard.status === 'running' || connection === 'updating'
-      ? 'updating'
-      : dashboard.status === 'degraded'
-        ? 'degraded'
-        : connection === 'offline' || dashboard.status === 'error'
-          ? 'offline'
-          : 'online'
-  );
-  const statusLabel = $derived(
-    dashboard.status === 'running'
-      ? 'Готовлю'
-      : dashboard.status === 'error'
-        ? 'Ошибка'
-        : dashboard.status === 'degraded'
-          ? 'Частично'
-          : connection === 'updating'
-            ? 'Обновление'
-            : connection === 'offline'
-              ? 'Нет сети'
-              : 'Онлайн'
-  );
-  const digest = $derived(dashboard.columns && dashboard.columns.length ? dashboard.columns : []);
 
-  function screenKey(data: Dashboard) {
-    return JSON.stringify({ s: data.summary, c: data.columns || null, a: data.actions });
+  function statusView(
+    dashStatus: Dashboard['status'],
+    conn: 'online' | 'updating' | 'offline'
+  ): { cls: string; label: string } {
+    if (dashStatus === 'running') return { cls: 'updating', label: 'Готовлю' };
+    if (dashStatus === 'error') return { cls: 'offline', label: 'Ошибка' };
+    if (dashStatus === 'degraded') return { cls: 'degraded', label: 'Частично' };
+    if (conn === 'updating') return { cls: 'updating', label: 'Обновление' };
+    if (conn === 'offline') return { cls: 'offline', label: 'Нет сети' };
+    return { cls: 'online', label: 'Онлайн' };
   }
+  const status = $derived(statusView(dashboard.status, connection));
 
   function hasId(actions: TvAction[], id: string) {
     for (let i = 0; i < actions.length; i += 1) if (actions[i].id === id) return true;
@@ -100,9 +87,8 @@
 
   function apply(next: Dashboard) {
     const prev = dashboard;
-    const nextKey = screenKey(next);
-    const prevKey = screenKey(prev);
-    if (prev.status === next.status && (prev.action || '') === (next.action || '') && nextKey === prevKey) {
+    const viewSame = sameView(prev, next);
+    if (prev.status === next.status && (prev.action || '') === (next.action || '') && viewSame) {
       return;
     }
     const prevId = selectedId;
@@ -112,7 +98,7 @@
     else if (hasId(next.actions, prevId)) selectedId = prevId;
     else if (hasId(next.actions, 'home')) selectedId = 'home';
     else selectedId = next.actions[0] ? next.actions[0].id : '';
-    if (nextKey !== prevKey && next.status !== 'error') notice = '';
+    if (!viewSame && next.status !== 'error') notice = '';
     if (selectedId !== prevId) void focusSelected();
   }
 
@@ -123,7 +109,9 @@
     return gen;
   }
 
-  async function waitForSettle(myGen: number, id: string, previousKey: string, seenRunning: boolean) {
+  // Cached id → new snapshot; else host writes running then result; home = back.
+  // ACK_MS = give up waiting for a change; WAIT_MS = still-running ceiling.
+  async function waitForSettle(myGen: number, id: string, previous: Dashboard, seenRunning: boolean) {
     const started = Date.now();
     const deadline = started + WAIT_MS;
     while (!stopped && myGen === gen && Date.now() < deadline) {
@@ -148,7 +136,7 @@
         next.status === 'error' ||
         next.status === 'degraded' ||
         seenRunning ||
-        screenKey(next) !== previousKey ||
+        !sameView(next, previous) ||
         Date.now() - started >= ACK_MS
       ) {
         connection = next.status === 'error' ? 'offline' : 'online';
@@ -165,7 +153,7 @@
   }
 
   async function refresh(silent: boolean) {
-    if (stopped || refreshInFlight) return;
+    if (stopped || refreshInFlight || waiting) return;
     refreshInFlight = true;
     if (!silent) connection = 'updating';
     try {
@@ -175,15 +163,13 @@
       if (next.status === 'running') {
         connection = 'updating';
         runningId = next.action || runningId;
-        waiting = true;
         const myGen = gen;
-        void (async function () {
-          try {
-            await waitForSettle(myGen, next.action || '', screenKey(next), true);
-          } finally {
-            if (myGen === gen) waiting = false;
-          }
-        })();
+        waiting = true;
+        try {
+          await waitForSettle(myGen, next.action || '', next, true);
+        } finally {
+          if (myGen === gen) waiting = false;
+        }
       } else {
         connection = 'online';
         runningId = null;
@@ -203,12 +189,12 @@
     runningId = id === 'home' ? runningId : id;
     notice = '';
     connection = 'updating';
-    const previousKey = screenKey(dashboard);
+    const previous = dashboard;
     waiting = true;
     try {
       await runAction(id, abort.signal);
       if (stopped || myGen !== gen) return;
-      await waitForSettle(myGen, id, previousKey, false);
+      await waitForSettle(myGen, id, previous, false);
     } catch (err) {
       if (stopped || myGen !== gen || isAbortError(err)) return;
       notice = 'Не удалось выполнить';
@@ -335,9 +321,9 @@
   <div class="stage" style={scale === 1 ? undefined : 'transform: scale(' + scale + ')'}>
     <header class="top">
       <time class="clock">{clock}</time>
-      <div class={'status is-' + statusState}>
+      <div class={'status is-' + status.cls}>
         <span class="status-dot"></span>
-        <span>{statusLabel}</span>
+        <span>{status.label}</span>
         {#if notice}
           <span class="status-notice">{notice}</span>
         {/if}
@@ -345,9 +331,9 @@
     </header>
 
     <section class="summary">
-      {#if digest.length}
-        <div class="digest" style={'grid-template-columns: repeat(' + digest.length + ', minmax(0, 1fr))'}>
-          {#each digest as column (column.title)}
+      {#if dashboard.columns && dashboard.columns.length}
+        <div class="digest" style={'grid-template-columns: repeat(' + dashboard.columns.length + ', minmax(0, 1fr))'}>
+          {#each dashboard.columns as column (column.title)}
             <section class="digest-col">
               <h2>{column.title}</h2>
               <ul class="digest-items">

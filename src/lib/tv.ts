@@ -77,12 +77,58 @@ export function isDashboard(value: unknown): value is Dashboard {
   return true;
 }
 
+export function sameView(a: Dashboard, b: Dashboard): boolean {
+  if (a.summary !== b.summary) return false;
+  if (a.actions.length !== b.actions.length) return false;
+  for (let i = 0; i < a.actions.length; i += 1) {
+    if (a.actions[i].id !== b.actions[i].id || a.actions[i].title !== b.actions[i].title) return false;
+  }
+  const ac = a.columns;
+  const bc = b.columns;
+  if (!ac && !bc) return true;
+  if (!ac || !bc || ac.length !== bc.length) return false;
+  for (let i = 0; i < ac.length; i += 1) {
+    if (ac[i].title !== bc[i].title) return false;
+    const ai = ac[i].items;
+    const bi = bc[i].items;
+    if (ai.length !== bi.length) return false;
+    for (let j = 0; j < ai.length; j += 1) {
+      if (ai[j] !== bi[j]) return false;
+    }
+  }
+  return true;
+}
+
+function copyDashboard(data: Dashboard): Dashboard {
+  const actions: TvAction[] = [];
+  for (let i = 0; i < data.actions.length; i += 1) {
+    actions.push({ id: data.actions[i].id, title: data.actions[i].title });
+  }
+  const out: Dashboard = {
+    summary: data.summary,
+    actions: actions,
+    status: data.status
+  };
+  if (data.action !== undefined) out.action = data.action;
+  if (Array.isArray(data.columns)) {
+    const columns: DigestColumn[] = [];
+    for (let i = 0; i < data.columns.length; i += 1) {
+      const items: string[] = [];
+      const src = data.columns[i].items;
+      for (let j = 0; j < src.length; j += 1) items.push(src[j]);
+      columns.push({ title: data.columns[i].title, items: items });
+    }
+    out.columns = columns;
+  }
+  return out;
+}
+
 export function loadCache(): Dashboard | null {
   try {
     const raw = localStorage.getItem(CACHE);
     if (!raw) return null;
     const data: unknown = JSON.parse(raw);
-    return isDashboard(data) && data.status === 'ready' ? data : null;
+    return isDashboard(data) && data.status === 'ready' ? copyDashboard(data) : null;
   } catch {
     return null;
   }
@@ -141,7 +187,7 @@ async function request(path: string, init?: RequestInit): Promise<Response> {
 export async function getDashboard(signal?: AbortSignal): Promise<Dashboard> {
   const data: unknown = await (await request('/tv', signal ? { signal } : undefined)).json();
   if (!isDashboard(data)) throw new Error('Invalid dashboard payload');
-  return data;
+  return copyDashboard(data);
 }
 
 export async function runAction(id: string, signal?: AbortSignal): Promise<void> {

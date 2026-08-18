@@ -1,3 +1,5 @@
+// TV artifact: IIFE app.js, classic <script>, base: './', target chrome69.
+// Never type=module in dist, never rollupOptions, :where() stripped.
 import { defineConfig, type Plugin, type ViteDevServer } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { existsSync, readFileSync } from 'node:fs';
