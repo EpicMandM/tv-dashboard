@@ -1,0 +1,22 @@
+---
+description: Conventional Commits required for every git commit
+alwaysApply: true
+---
+
+# Semantic commits
+
+Every git commit message in this repo must be a [Conventional Commit](https://www.conventionalcommits.org/):
+
+```
+<type>(optional scope): <description>
+```
+
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+
+Rules:
+
+- Imperative, lowercase description after the type (no period at the end of the subject).
+- Do not write prose-only subjects such as "Serialize dashboard settle…".
+- Do not use non-standard types such as `init`.
+- Leave merge commits from Dependabot as GitHub created them; do not rewrite published merge history to rename them.
+- When the user asks to commit, use this format. Do not create commits unless asked.
