@@ -3,6 +3,7 @@
 ```bash
 bun install
 bun run dev       # Vite mock from data/tv.json
+bun run lint      # Oxlint + TypeScript 7 type-aware / typecheck
 bun run build     # TV artifact check
 bun run deploy    # build, sign, install, launch
 bun run package   # signed .wgt

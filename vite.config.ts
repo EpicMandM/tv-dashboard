@@ -1,6 +1,6 @@
 // TV artifact: IIFE app.js, classic <script>, base: './', target chrome69.
 // Never type=module in dist, never rollupOptions, :where() stripped.
-import { defineConfig, type Plugin, type ViteDevServer } from 'vite';
+import { defineConfig, type Plugin, type PreviewServer, type ViteDevServer } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -9,8 +9,8 @@ import { isDashboard, SEED, type Dashboard, type DigestColumn } from './src/lib/
 
 const SNAPSHOT_FILE = resolve(fileURLToPath(new URL('./data/tv.json', import.meta.url)));
 const PROGRESS: Record<string, string> = {
-  'plan-tomorrow': 'Готовлю план на завтра. Обычно около минуты.',
-  'what-missed': 'Смотрю, что могло ускользнуть. Обычно около минуты.'
+  'plan-tomorrow': "Preparing tomorrow's plan. Usually about a minute.",
+  'what-missed': 'Checking what might have slipped through. Usually about a minute.'
 };
 
 let live: Dashboard | null = null;
@@ -35,7 +35,10 @@ function current(): Dashboard {
 }
 
 function hasAction(data: Dashboard, id: string) {
-  for (let i = 0; i < data.actions.length; i += 1) if (data.actions[i].id === id) return true;
+  for (let i = 0; i < data.actions.length; i += 1) {
+    const action = data.actions[i];
+    if (action && action.id === id) return true;
+  }
   return false;
 }
 
@@ -44,13 +47,13 @@ function fromView(id: string, view: unknown): Dashboard | null {
   const raw = view as { summary?: unknown; columns?: unknown };
   const summary = typeof raw.summary === 'string' && raw.summary ? raw.summary : '';
   const candidate: Dashboard = {
-    summary: summary || (id === 'home' ? readSnapshot().dashboard.summary : 'Готово.'),
+    summary: summary || (id === 'home' ? readSnapshot().dashboard.summary : 'Done.'),
     actions:
       id === 'home'
         ? readSnapshot().dashboard.actions
         : [
-            { id: 'home', title: 'Назад' },
-            { id, title: 'Обновить' }
+            { id: 'home', title: 'Back' },
+            { id, title: 'Refresh' }
           ],
     status: 'ready',
     columns: Array.isArray(raw.columns) ? (raw.columns as DigestColumn[]) : undefined
@@ -60,8 +63,8 @@ function fromView(id: string, view: unknown): Dashboard | null {
 
 function startJob(id: string) {
   live = {
-    summary: PROGRESS[id] || 'Готовлю.',
-    actions: [{ id: 'home', title: 'Назад' }],
+    summary: PROGRESS[id] || 'Preparing.',
+    actions: [{ id: 'home', title: 'Back' }],
     status: 'running',
     action: id
   };
@@ -70,11 +73,11 @@ function startJob(id: string) {
     live = fromView(id, readSnapshot().views[id]) || {
       summary:
         id === 'what-missed'
-          ? 'Проверил прошедшее. Открытых хвостов нет.'
-          : 'Завтра без срочных слотов. Можно спокойно спланировать утро.',
+          ? 'Caught up on what passed. Nothing left open.'
+          : 'Tomorrow has no urgent slots. Morning can be planned at ease.',
       actions: [
-        { id: 'home', title: 'Назад' },
-        { id, title: 'Обновить' }
+        { id: 'home', title: 'Back' },
+        { id, title: 'Refresh' }
       ],
       status: 'ready'
     };
@@ -82,9 +85,9 @@ function startJob(id: string) {
 }
 
 function mockTvApi(): Plugin {
-  const handle = (server: ViteDevServer) => {
+  const handle = (server: ViteDevServer | PreviewServer) => {
     server.middlewares.use((req, res, next) => {
-      const path = (req.url || '').split('?')[0];
+      const path = (req.url || '').split('?')[0] || '';
       const isTv = path === '/tv';
       const isAction = path.indexOf('/actions/') === 0 && path.length > 9;
       if (!isTv && !isAction) {

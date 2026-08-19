@@ -50,8 +50,10 @@ function die(message: string): never {
 function idsFromConfig(): { packageId: string; appId: string } {
   const xml = readFileSync(join(root, 'tizen', 'config.xml'), 'utf8');
   const match = xml.match(/<tizen:application id="([^"]+)" package="([^"]+)"/);
-  if (!match) die('tizen/config.xml: missing tizen:application id/package');
-  return { appId: match[1], packageId: match[2] };
+  const appId = match && match[1];
+  const packageId = match && match[2];
+  if (!appId || !packageId) die('tizen/config.xml: missing tizen:application id/package');
+  return { appId, packageId };
 }
 
 const ids = idsFromConfig();
@@ -66,12 +68,12 @@ function parseP12(file: string, password: string): P12Content {
   const out: P12Content = { privateKey: '', certChain: [] };
   for (const contents of p12.safeContents) {
     for (const bag of contents.safeBags) {
-      if (bag.type == forge.pki.oids.certBag) {
+      if (bag.type === forge.pki.oids.certBag) {
         const pem = forge.pki.certificateToPem(bag.cert);
         const begin = '-----BEGIN CERTIFICATE-----';
         const end = '-----END CERTIFICATE-----';
         out.certChain.push(pem.slice(pem.indexOf(begin) + begin.length + 1, pem.indexOf(end)));
-      } else if (bag.type == forge.pki.oids.pkcs8ShroudedKeyBag || bag.type == forge.pki.oids.keyBag) {
+      } else if (bag.type === forge.pki.oids.pkcs8ShroudedKeyBag || bag.type === forge.pki.oids.keyBag) {
         out.privateKey = forge.pki.privateKeyToPem(bag.key);
       }
     }

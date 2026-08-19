@@ -14,10 +14,10 @@ export type Dashboard = {
 
 export const SEED: Dashboard = {
   summary:
-    'Сегодня нет срочных дел. Можно спокойно спланировать завтра и проверить, что прошло мимо внимания.',
+    'No urgent items today. You can plan tomorrow and check what slipped by.',
   actions: [
-    { id: 'plan-tomorrow', title: 'План на завтра' },
-    { id: 'what-missed', title: 'Что я упустил?' }
+    { id: 'plan-tomorrow', title: 'Plan tomorrow' },
+    { id: 'what-missed', title: 'What did I miss?' }
   ],
   status: 'ready'
 };
@@ -81,16 +81,20 @@ export function sameView(a: Dashboard, b: Dashboard): boolean {
   if (a.summary !== b.summary) return false;
   if (a.actions.length !== b.actions.length) return false;
   for (let i = 0; i < a.actions.length; i += 1) {
-    if (a.actions[i].id !== b.actions[i].id || a.actions[i].title !== b.actions[i].title) return false;
+    const left = a.actions[i];
+    const right = b.actions[i];
+    if (!left || !right || left.id !== right.id || left.title !== right.title) return false;
   }
   const ac = a.columns;
   const bc = b.columns;
   if (!ac && !bc) return true;
   if (!ac || !bc || ac.length !== bc.length) return false;
   for (let i = 0; i < ac.length; i += 1) {
-    if (ac[i].title !== bc[i].title) return false;
-    const ai = ac[i].items;
-    const bi = bc[i].items;
+    const colA = ac[i];
+    const colB = bc[i];
+    if (!colA || !colB || colA.title !== colB.title) return false;
+    const ai = colA.items;
+    const bi = colB.items;
     if (ai.length !== bi.length) return false;
     for (let j = 0; j < ai.length; j += 1) {
       if (ai[j] !== bi[j]) return false;
@@ -102,7 +106,9 @@ export function sameView(a: Dashboard, b: Dashboard): boolean {
 function copyDashboard(data: Dashboard): Dashboard {
   const actions: TvAction[] = [];
   for (let i = 0; i < data.actions.length; i += 1) {
-    actions.push({ id: data.actions[i].id, title: data.actions[i].title });
+    const action = data.actions[i];
+    if (!action) continue;
+    actions.push({ id: action.id, title: action.title });
   }
   const out: Dashboard = {
     summary: data.summary,
@@ -113,10 +119,15 @@ function copyDashboard(data: Dashboard): Dashboard {
   if (Array.isArray(data.columns)) {
     const columns: DigestColumn[] = [];
     for (let i = 0; i < data.columns.length; i += 1) {
+      const col = data.columns[i];
+      if (!col) continue;
       const items: string[] = [];
-      const src = data.columns[i].items;
-      for (let j = 0; j < src.length; j += 1) items.push(src[j]);
-      columns.push({ title: data.columns[i].title, items: items });
+      const src = col.items;
+      for (let j = 0; j < src.length; j += 1) {
+        const item = src[j];
+        if (item !== undefined) items.push(item);
+      }
+      columns.push({ title: col.title, items: items });
     }
     out.columns = columns;
   }
