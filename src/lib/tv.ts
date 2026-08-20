@@ -14,10 +14,10 @@ export type Dashboard = {
 
 export const SEED: Dashboard = {
   summary:
-    'No urgent items today. You can plan tomorrow and check what slipped by.',
+    'Сегодня нет срочных дел. Можно спокойно спланировать завтра и проверить, что прошло мимо внимания.',
   actions: [
-    { id: 'plan-tomorrow', title: 'Plan tomorrow' },
-    { id: 'what-missed', title: 'What did I miss?' }
+    { id: 'plan-tomorrow', title: 'План на завтра' },
+    { id: 'what-missed', title: 'Что я упустил?' }
   ],
   status: 'ready'
 };

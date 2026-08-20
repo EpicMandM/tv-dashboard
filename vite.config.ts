@@ -9,8 +9,8 @@ import { isDashboard, SEED, type Dashboard, type DigestColumn } from './src/lib/
 
 const SNAPSHOT_FILE = resolve(fileURLToPath(new URL('./data/tv.json', import.meta.url)));
 const PROGRESS: Record<string, string> = {
-  'plan-tomorrow': "Preparing tomorrow's plan. Usually about a minute.",
-  'what-missed': 'Checking what might have slipped through. Usually about a minute.'
+  'plan-tomorrow': 'Готовлю план на завтра. Обычно около минуты.',
+  'what-missed': 'Смотрю, что могло ускользнуть. Обычно около минуты.'
 };
 
 let live: Dashboard | null = null;
@@ -47,13 +47,13 @@ function fromView(id: string, view: unknown): Dashboard | null {
   const raw = view as { summary?: unknown; columns?: unknown };
   const summary = typeof raw.summary === 'string' && raw.summary ? raw.summary : '';
   const candidate: Dashboard = {
-    summary: summary || (id === 'home' ? readSnapshot().dashboard.summary : 'Done.'),
+    summary: summary || (id === 'home' ? readSnapshot().dashboard.summary : 'Готово.'),
     actions:
       id === 'home'
         ? readSnapshot().dashboard.actions
         : [
-            { id: 'home', title: 'Back' },
-            { id, title: 'Refresh' }
+            { id: 'home', title: 'Назад' },
+            { id, title: 'Обновить' }
           ],
     status: 'ready',
     columns: Array.isArray(raw.columns) ? (raw.columns as DigestColumn[]) : undefined
@@ -63,8 +63,8 @@ function fromView(id: string, view: unknown): Dashboard | null {
 
 function startJob(id: string) {
   live = {
-    summary: PROGRESS[id] || 'Preparing.',
-    actions: [{ id: 'home', title: 'Back' }],
+    summary: PROGRESS[id] || 'Готовлю.',
+    actions: [{ id: 'home', title: 'Назад' }],
     status: 'running',
     action: id
   };
@@ -73,11 +73,11 @@ function startJob(id: string) {
     live = fromView(id, readSnapshot().views[id]) || {
       summary:
         id === 'what-missed'
-          ? 'Caught up on what passed. Nothing left open.'
-          : 'Tomorrow has no urgent slots. Morning can be planned at ease.',
+          ? 'Проверил прошедшее. Открытых хвостов нет.'
+          : 'Завтра без срочных слотов. Можно спокойно спланировать утро.',
       actions: [
-        { id: 'home', title: 'Back' },
-        { id, title: 'Refresh' }
+        { id: 'home', title: 'Назад' },
+        { id, title: 'Обновить' }
       ],
       status: 'ready'
     };
@@ -199,11 +199,13 @@ function toClassicScripts(html: string): string {
     out += html.slice(start, closeEnd + 1);
     i = closeEnd + 1;
   }
-  const classic = '    <script src="' + (src || './app.js') + '"></script>\n';
+  const classic = '<script src="' + (src || './app.js') + '"></script>';
   const body = out.indexOf('</body>');
-  return body === -1
-    ? out + classic
-    : out.slice(0, body) + classic + '  </body>' + out.slice(body + '</body>'.length);
+  const assembled =
+    body === -1
+      ? out + classic
+      : out.slice(0, body) + classic + '</body>' + out.slice(body + '</body>'.length);
+  return assembled.replace(/>\s+</g, '><').trim();
 }
 
 function tizenHtml(): Plugin {
@@ -233,10 +235,13 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         format: 'iife',
-        name: 'TvDashboard',
         entryFileNames: 'app.js',
         assetFileNames: 'app[extname]',
-        banner: 'if(typeof globalThis==="undefined"){window.globalThis=window;}'
+        minify: {
+          compress: { target: 'chrome69', dropConsole: true },
+          mangle: { toplevel: true },
+          codegen: { legalComments: 'none', removeWhitespace: true }
+        }
       }
     }
   },

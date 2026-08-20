@@ -46,12 +46,12 @@
     dashStatus: Dashboard['status'],
     conn: 'online' | 'updating' | 'offline'
   ): { cls: string; label: string } {
-    if (dashStatus === 'running') return { cls: 'updating', label: 'Preparing' };
-    if (dashStatus === 'error') return { cls: 'offline', label: 'Error' };
-    if (dashStatus === 'degraded') return { cls: 'degraded', label: 'Partial' };
-    if (conn === 'updating') return { cls: 'updating', label: 'Updating' };
-    if (conn === 'offline') return { cls: 'offline', label: 'Offline' };
-    return { cls: 'online', label: 'Online' };
+    if (dashStatus === 'running') return { cls: 'updating', label: 'Готовлю' };
+    if (dashStatus === 'error') return { cls: 'offline', label: 'Ошибка' };
+    if (dashStatus === 'degraded') return { cls: 'degraded', label: 'Частично' };
+    if (conn === 'updating') return { cls: 'updating', label: 'Обновление' };
+    if (conn === 'offline') return { cls: 'offline', label: 'Нет сети' };
+    return { cls: 'online', label: 'Онлайн' };
   }
   const status = $derived(statusView(dashboard.status, connection));
 
@@ -141,13 +141,13 @@
       ) {
         connection = next.status === 'error' ? 'offline' : 'online';
         runningId = null;
-        notice = next.status === 'error' ? 'Update failed' : '';
+        notice = next.status === 'error' ? 'Не удалось обновить' : '';
         return;
       }
       await sleep(POLL_MS);
     }
     if (stopped || myGen !== gen) return;
-    notice = 'Still preparing';
+    notice = 'Всё ещё готовится';
     connection = 'online';
     runningId = null;
   }
@@ -197,7 +197,7 @@
       await waitForSettle(myGen, id, previous, false);
     } catch (err) {
       if (stopped || myGen !== gen || isAbortError(err)) return;
-      notice = 'Action failed';
+      notice = 'Не удалось выполнить';
       connection = 'offline';
       runningId = null;
     } finally {
