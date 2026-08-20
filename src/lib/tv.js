@@ -1,18 +1,7 @@
 // GET /tv = screen. POST /actions/:id → 204.
 // home = back. Cached id switches the snapshot. Else host writes running, then the result.
 
-export type TvAction = { id: string; title: string };
-export type DigestColumn = { title: string; items: string[] };
-export type DashboardStatus = 'ready' | 'running' | 'error' | 'degraded';
-export type Dashboard = {
-  summary: string;
-  actions: TvAction[];
-  status: DashboardStatus;
-  action?: string;
-  columns?: DigestColumn[];
-};
-
-export const SEED: Dashboard = {
+export const SEED = {
   summary:
     'Сегодня нет срочных дел. Можно спокойно спланировать завтра и проверить, что прошло мимо внимания.',
   actions: [
@@ -25,9 +14,9 @@ export const SEED: Dashboard = {
 const CACHE = 'tv-dashboard-v5';
 const TIMEOUT_MS = 8000;
 
-export function isDashboard(value: unknown): value is Dashboard {
+export function isDashboard(value) {
   if (!value || typeof value !== 'object') return false;
-  const p = value as Record<string, unknown>;
+  const p = value;
   if (typeof p.summary !== 'string' || p.summary.length > 800) return false;
   if (p.status !== 'ready' && p.status !== 'running' && p.status !== 'error' && p.status !== 'degraded') {
     return false;
@@ -35,9 +24,9 @@ export function isDashboard(value: unknown): value is Dashboard {
   if (p.action !== undefined && (typeof p.action !== 'string' || p.action.length > 64)) return false;
   if (p.columns !== undefined && p.columns !== null) {
     if (!Array.isArray(p.columns) || p.columns.length > 3) return false;
-    const titles: Record<string, true> = {};
+    const titles = {};
     for (let i = 0; i < p.columns.length; i += 1) {
-      const col = p.columns[i] as { title?: unknown; items?: unknown };
+      const col = p.columns[i];
       if (
         !col ||
         typeof col.title !== 'string' ||
@@ -57,9 +46,9 @@ export function isDashboard(value: unknown): value is Dashboard {
     }
   }
   if (!Array.isArray(p.actions) || p.actions.length < 1 || p.actions.length > 4) return false;
-  const seen: Record<string, true> = {};
+  const seen = {};
   for (let i = 0; i < p.actions.length; i += 1) {
-    const a = p.actions[i] as { id?: unknown; title?: unknown };
+    const a = p.actions[i];
     if (
       !a ||
       typeof a.id !== 'string' ||
@@ -77,7 +66,7 @@ export function isDashboard(value: unknown): value is Dashboard {
   return true;
 }
 
-export function sameView(a: Dashboard, b: Dashboard): boolean {
+export function sameView(a, b) {
   if (a.summary !== b.summary) return false;
   if (a.actions.length !== b.actions.length) return false;
   for (let i = 0; i < a.actions.length; i += 1) {
@@ -103,25 +92,25 @@ export function sameView(a: Dashboard, b: Dashboard): boolean {
   return true;
 }
 
-function copyDashboard(data: Dashboard): Dashboard {
-  const actions: TvAction[] = [];
+function copyDashboard(data) {
+  const actions = [];
   for (let i = 0; i < data.actions.length; i += 1) {
     const action = data.actions[i];
     if (!action) continue;
     actions.push({ id: action.id, title: action.title });
   }
-  const out: Dashboard = {
+  const out = {
     summary: data.summary,
     actions: actions,
     status: data.status
   };
   if (data.action !== undefined) out.action = data.action;
   if (Array.isArray(data.columns)) {
-    const columns: DigestColumn[] = [];
+    const columns = [];
     for (let i = 0; i < data.columns.length; i += 1) {
       const col = data.columns[i];
       if (!col) continue;
-      const items: string[] = [];
+      const items = [];
       const src = col.items;
       for (let j = 0; j < src.length; j += 1) {
         const item = src[j];
@@ -134,33 +123,33 @@ function copyDashboard(data: Dashboard): Dashboard {
   return out;
 }
 
-export function loadCache(): Dashboard | null {
+export function loadCache() {
   try {
     const raw = localStorage.getItem(CACHE);
     if (!raw) return null;
-    const data: unknown = JSON.parse(raw);
+    const data = JSON.parse(raw);
     return isDashboard(data) && data.status === 'ready' ? copyDashboard(data) : null;
   } catch {
     return null;
   }
 }
 
-export function saveCache(data: Dashboard): void {
+export function saveCache(data) {
   if (data.status !== 'ready') return;
   try {
     localStorage.setItem(CACHE, JSON.stringify(data));
   } catch {}
 }
 
-export function isAbortError(err: unknown): boolean {
-  return !!err && typeof err === 'object' && (err as { name?: string }).name === 'AbortError';
+export function isAbortError(err) {
+  return !!err && typeof err === 'object' && err.name === 'AbortError';
 }
 
-function apiUrl(path: string): string {
+function apiUrl(path) {
   return String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '') + path;
 }
 
-async function request(path: string, init?: RequestInit): Promise<Response> {
+async function request(path, init) {
   const controller = new AbortController();
   let timedOut = false;
   const timer = window.setTimeout(function () {
@@ -195,12 +184,12 @@ async function request(path: string, init?: RequestInit): Promise<Response> {
   }
 }
 
-export async function getDashboard(signal?: AbortSignal): Promise<Dashboard> {
-  const data: unknown = await (await request('/tv', signal ? { signal } : undefined)).json();
+export async function getDashboard(signal) {
+  const data = await (await request('/tv', signal ? { signal } : undefined)).json();
   if (!isDashboard(data)) throw new Error('Invalid dashboard payload');
   return copyDashboard(data);
 }
 
-export async function runAction(id: string, signal?: AbortSignal): Promise<void> {
+export async function runAction(id, signal) {
   await request('/actions/' + encodeURIComponent(id), { method: 'POST', signal });
 }

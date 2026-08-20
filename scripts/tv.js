@@ -6,48 +6,29 @@ import { join } from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const forge = require('node-forge') as {
-  asn1: { fromDer: (der: string) => unknown };
-  pkcs12: { pkcs12FromAsn1: (asn1: unknown, password: string) => P12 };
-  pki: {
-    oids: { certBag: string; pkcs8ShroudedKeyBag: string; keyBag: string };
-    certificateToPem: (cert: unknown) => string;
-    privateKeyToPem: (key: unknown) => string;
-  };
-};
-const PackageSigner = require('./vendor/packageSigner.js') as new () => {
-  profileInfo: { author: P12Content | null; distributor1: P12Content | null; distributor2: null };
-  signPackage: (root: string) => void;
-};
-
-type P12 = {
-  safeContents: Array<{
-    safeBags: Array<{ type: string; cert?: unknown; key?: unknown }>;
-  }>;
-};
-
-type P12Content = { privateKey: string; certChain: string[] };
+const forge = require('node-forge');
+const PackageSigner = require('./vendor/packageSigner.js');
 
 const root = join(import.meta.dir, '..');
 const WGT = join(root, 'tv-dashboard.wgt');
 const TV_PUSH = '/home/owner/share/tmp/sdk_tools/tv-dashboard.wgt';
 
-function expand(path: string): string {
+function expand(path) {
   if (path.startsWith('~/')) return join(homedir(), path.slice(2));
   return path;
 }
 
-function env(name: string, fallback: string): string {
+function env(name, fallback) {
   const value = process.env[name];
   return value && value.trim() ? expand(value.trim()) : expand(fallback);
 }
 
-function die(message: string): never {
+function die(message) {
   console.error(message);
   process.exit(1);
 }
 
-function idsFromConfig(): { packageId: string; appId: string } {
+function idsFromConfig() {
   const xml = readFileSync(join(root, 'tizen', 'config.xml'), 'utf8');
   const match = xml.match(/<tizen:application id="([^"]+)" package="([^"]+)"/);
   const appId = match && match[1];
@@ -60,12 +41,12 @@ const ids = idsFromConfig();
 const PACKAGE_ID = ids.packageId;
 const APP_ID = ids.appId;
 
-function parseP12(file: string, password: string): P12Content {
+function parseP12(file, password) {
   const p12 = forge.pkcs12.pkcs12FromAsn1(
     forge.asn1.fromDer(readFileSync(file).toString('binary')),
     password
   );
-  const out: P12Content = { privateKey: '', certChain: [] };
+  const out = { privateKey: '', certChain: [] };
   for (const contents of p12.safeContents) {
     for (const bag of contents.safeBags) {
       if (bag.type === forge.pki.oids.certBag) {
@@ -83,7 +64,7 @@ function parseP12(file: string, password: string): P12Content {
   return out;
 }
 
-function findSdb(): string {
+function findSdb() {
   const fromEnv = process.env.SDB;
   if (fromEnv) return expand(fromEnv);
   const which = spawnSync('which', ['sdb'], { encoding: 'utf8' });
@@ -93,7 +74,7 @@ function findSdb(): string {
   die('sdb not found. Install Tizen sdb or set SDB=/path/to/sdb');
 }
 
-function run(cmd: string, args: string[], opts?: { cwd?: string }): string {
+function run(cmd, args, opts) {
   const proc = spawnSync(cmd, args, {
     cwd: opts && opts.cwd,
     encoding: 'utf8'
@@ -106,17 +87,17 @@ function run(cmd: string, args: string[], opts?: { cwd?: string }): string {
   return out;
 }
 
-function sdb(args: string[]): string {
+function sdb(args) {
   return run(findSdb(), args);
 }
 
-function tvSerial(): string {
+function tvSerial() {
   const ip = process.env.TV_IP;
   if (!ip || !ip.trim()) die('Set TV_IP in .env (see .env.example)');
   return ip.trim() + ':26101';
 }
 
-function buildWgt(): void {
+function buildWgt() {
   const dist = join(root, 'dist');
   const tizen = join(root, 'tizen');
   if (!existsSync(join(dist, 'index.html'))) die('Missing dist/. Run bun run build first.');
@@ -160,7 +141,7 @@ function buildWgt(): void {
   console.log('Signed ' + WGT);
 }
 
-function deploy(): void {
+function deploy() {
   buildWgt();
   const serial = tvSerial();
   sdb(['connect', serial]);
@@ -171,30 +152,30 @@ function deploy(): void {
   launch();
 }
 
-function launch(): void {
+function launch() {
   const serial = tvSerial();
   sdb(['connect', serial]);
   const out = sdb(['shell', '0', 'was_execute', APP_ID]);
   process.stdout.write(out);
 }
 
-function tvHost(): string {
+function tvHost() {
   const ip = process.env.TV_IP;
   if (!ip || !ip.trim()) die('Set TV_IP in .env (see .env.example)');
   return ip.trim();
 }
 
-function sleep(ms: number): Promise<void> {
+function sleep(ms) {
   return new Promise(function (resolve) {
     setTimeout(resolve, ms);
   });
 }
 
-function portOpen(host: string, port: number, timeoutMs: number): Promise<boolean> {
+function portOpen(host, port, timeoutMs) {
   return new Promise(function (resolve) {
     const sock = createConnection({ host, port });
     let settled = false;
-    function done(ok: boolean) {
+    function done(ok) {
       if (settled) return;
       settled = true;
       sock.removeAllListeners();
@@ -214,18 +195,18 @@ function portOpen(host: string, port: number, timeoutMs: number): Promise<boolea
   });
 }
 
-async function tvOnline(): Promise<boolean> {
+async function tvOnline() {
   const host = tvHost();
   if (await portOpen(host, 8001, 1500)) return true;
   return portOpen(host, 26101, 1500);
 }
 
-async function appVisible(): Promise<boolean | null> {
+async function appVisible() {
   const url = 'http://' + tvHost() + ':8001/api/v2/applications/' + APP_ID;
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
-    const data = (await response.json()) as { visible?: boolean; running?: boolean };
+    const data = await response.json();
     if (typeof data.visible === 'boolean') return data.visible;
     if (typeof data.running === 'boolean') return data.running;
     return null;
@@ -234,7 +215,7 @@ async function appVisible(): Promise<boolean | null> {
   }
 }
 
-async function launchHttp(): Promise<boolean> {
+async function launchHttp() {
   const url = 'http://' + tvHost() + ':8001/api/v2/applications/' + APP_ID;
   try {
     const response = await fetch(url, { method: 'POST' });
@@ -244,13 +225,13 @@ async function launchHttp(): Promise<boolean> {
   }
 }
 
-function sdbConnect(): boolean {
+function sdbConnect() {
   const serial = tvHost() + ':26101';
   const connect = spawnSync(findSdb(), ['connect', serial], { encoding: 'utf8' });
   return connect.status === 0;
 }
 
-function sdbShell(cmd: string, id: string): boolean {
+function sdbShell(cmd, id) {
   if (!sdbConnect()) return false;
   const exec = spawnSync(findSdb(), ['shell', '0', cmd, id], { encoding: 'utf8' });
   const out = String(exec.stdout || '') + String(exec.stderr || '');
@@ -258,22 +239,22 @@ function sdbShell(cmd: string, id: string): boolean {
   return exec.status === 0;
 }
 
-function launchSdb(): boolean {
+function launchSdb() {
   return sdbShell('was_execute', APP_ID);
 }
 
-function relaunchSdb(): boolean {
+function relaunchSdb() {
   sdbShell('was_kill', APP_ID);
   return sdbShell('was_execute', APP_ID);
 }
 
-async function launchWs(): Promise<boolean> {
+async function launchWs() {
   const name = Buffer.from('TvDashboard').toString('base64');
   const url =
     'ws://' + tvHost() + ':8001/api/v2/channels/samsung.remote.control?name=' + encodeURIComponent(name);
   return await new Promise(function (resolve) {
     let settled = false;
-    function done(ok: boolean) {
+    function done(ok) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -312,7 +293,7 @@ async function launchWs(): Promise<boolean> {
   });
 }
 
-async function bringToFront(forceRestart: boolean): Promise<void> {
+async function bringToFront(forceRestart) {
   const sdbOk = forceRestart ? relaunchSdb() : launchSdb();
   if (sdbOk) console.log(forceRestart ? 'Relaunched via sdb' : 'Launched via sdb');
   if (await launchHttp()) console.log('Launched via TV API');
@@ -320,7 +301,7 @@ async function bringToFront(forceRestart: boolean): Promise<void> {
   if (!sdbOk) console.log('Launch failed (sdb)');
 }
 
-async function watch(): Promise<void> {
+async function watch() {
   let wasOnline = false;
   console.log('Watching ' + tvHost() + ' for power-on…');
   for (;;) {
@@ -349,4 +330,4 @@ if (cmd === 'package') buildWgt();
 else if (cmd === 'deploy') deploy();
 else if (cmd === 'launch') launch();
 else if (cmd === 'watch') void watch();
-else die('Usage: bun scripts/tv.ts <package|deploy|launch|watch>');
+else die('Usage: bun scripts/tv.js <package|deploy|launch|watch>');

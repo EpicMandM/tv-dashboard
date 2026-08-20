@@ -2,7 +2,7 @@ import './lib/polyfills';
 import './app.css';
 import { startApp } from './app';
 
-function bootError(message: string) {
+function bootError(message) {
   const el = document.getElementById('app') || document.body;
   el.innerHTML =
     '<pre style="color:#f3f7fb;background:#1a1010;font-size:28px;padding:48px;white-space:pre-wrap;line-height:1.35">' +
@@ -22,5 +22,5 @@ window.onunhandledrejection = function (event) {
 try {
   startApp();
 } catch (err) {
-  bootError(err && (err as Error).stack ? String((err as Error).stack) : String(err));
+  bootError(err && err.stack ? String(err.stack) : String(err));
 }

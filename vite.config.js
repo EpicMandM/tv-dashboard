@@ -1,39 +1,36 @@
 // TV artifact: IIFE app.js, classic <script>, base: './', target chrome69.
 // Never type=module in dist, never rollupOptions, :where() stripped.
-import { defineConfig, type Plugin, type PreviewServer, type ViteDevServer } from 'vite';
+import { defineConfig } from 'vite';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isDashboard, SEED, type Dashboard, type DigestColumn } from './src/lib/tv.ts';
+import { isDashboard, SEED } from './src/lib/tv.js';
 
 const SNAPSHOT_FILE = resolve(fileURLToPath(new URL('./data/tv.json', import.meta.url)));
-const PROGRESS: Record<string, string> = {
+const PROGRESS = {
   'plan-tomorrow': 'Готовлю план на завтра. Обычно около минуты.',
   'what-missed': 'Смотрю, что могло ускользнуть. Обычно около минуты.'
 };
 
-let live: Dashboard | null = null;
-let jobTimer: ReturnType<typeof setTimeout> | undefined;
+let live = null;
+let jobTimer;
 
-function readSnapshot(): { dashboard: Dashboard; views: Record<string, unknown> } {
+function readSnapshot() {
   if (!existsSync(SNAPSHOT_FILE)) return { dashboard: SEED, views: {} };
   try {
-    const data: unknown = JSON.parse(readFileSync(SNAPSHOT_FILE, 'utf8'));
+    const data = JSON.parse(readFileSync(SNAPSHOT_FILE, 'utf8'));
     const views =
-      data && typeof data === 'object' && (data as { views?: unknown }).views &&
-      typeof (data as { views: unknown }).views === 'object'
-        ? (data as { views: Record<string, unknown> }).views
-        : {};
+      data && typeof data === 'object' && data.views && typeof data.views === 'object' ? data.views : {};
     if (isDashboard(data)) return { dashboard: data, views };
   } catch {}
   return { dashboard: SEED, views: {} };
 }
 
-function current(): Dashboard {
+function current() {
   return live || readSnapshot().dashboard;
 }
 
-function hasAction(data: Dashboard, id: string) {
+function hasAction(data, id) {
   for (let i = 0; i < data.actions.length; i += 1) {
     const action = data.actions[i];
     if (action && action.id === id) return true;
@@ -41,11 +38,10 @@ function hasAction(data: Dashboard, id: string) {
   return false;
 }
 
-function fromView(id: string, view: unknown): Dashboard | null {
+function fromView(id, view) {
   if (!view || typeof view !== 'object') return null;
-  const raw = view as { summary?: unknown; columns?: unknown };
-  const summary = typeof raw.summary === 'string' && raw.summary ? raw.summary : '';
-  const candidate: Dashboard = {
+  const summary = typeof view.summary === 'string' && view.summary ? view.summary : '';
+  const candidate = {
     summary: summary || (id === 'home' ? readSnapshot().dashboard.summary : 'Готово.'),
     actions:
       id === 'home'
@@ -55,12 +51,12 @@ function fromView(id: string, view: unknown): Dashboard | null {
             { id, title: 'Обновить' }
           ],
     status: 'ready',
-    columns: Array.isArray(raw.columns) ? (raw.columns as DigestColumn[]) : undefined
+    columns: Array.isArray(view.columns) ? view.columns : undefined
   };
   return isDashboard(candidate) ? candidate : null;
 }
 
-function startJob(id: string) {
+function startJob(id) {
   live = {
     summary: PROGRESS[id] || 'Готовлю.',
     actions: [{ id: 'home', title: 'Назад' }],
@@ -83,8 +79,8 @@ function startJob(id: string) {
   }, 1600);
 }
 
-function mockTvApi(): Plugin {
-  const handle = (server: ViteDevServer | PreviewServer) => {
+function mockTvApi() {
+  const handle = (server) => {
     server.middlewares.use((req, res, next) => {
       const path = (req.url || '').split('?')[0] || '';
       const isTv = path === '/tv';
@@ -146,7 +142,7 @@ function mockTvApi(): Plugin {
   return { name: 'mock-tv-api', configureServer: handle, configurePreviewServer: handle };
 }
 
-function stripWhereSelectors(): Plugin {
+function stripWhereSelectors() {
   return {
     name: 'strip-where-selectors',
     generateBundle(_options, bundle) {
@@ -159,7 +155,7 @@ function stripWhereSelectors(): Plugin {
   };
 }
 
-function quotedAttr(tag: string, name: string): string | null {
+function quotedAttr(tag, name) {
   const key = name + '="';
   const at = tag.toLowerCase().indexOf(key);
   if (at === -1) return null;
@@ -168,7 +164,7 @@ function quotedAttr(tag: string, name: string): string | null {
   return end === -1 ? null : tag.slice(start, end);
 }
 
-function toClassicScripts(html: string): string {
+function toClassicScripts(html) {
   const lower = html.toLowerCase();
   let src = '';
   let out = '';
@@ -207,7 +203,7 @@ function toClassicScripts(html: string): string {
   return assembled.replace(/>\s+</g, '><').trim();
 }
 
-function tizenHtml(): Plugin {
+function tizenHtml() {
   return {
     name: 'tizen-html',
     apply: 'build',

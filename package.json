@@ -7,20 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "package": "bun run build && bun scripts/tv.ts package",
-    "deploy": "bun run build && bun scripts/tv.ts deploy",
-    "launch": "bun scripts/tv.ts launch",
-    "watch": "bun scripts/tv.ts watch",
+    "package": "bun run build && bun scripts/tv.js package",
+    "deploy": "bun run build && bun scripts/tv.js deploy",
+    "launch": "bun scripts/tv.js launch",
+    "watch": "bun scripts/tv.js watch",
     "lint": "oxlint --deny-warnings"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14",
-    "@types/node": "26.2.0",
     "@xmldom/xmldom": "0.9.11",
     "node-forge": "1.4.0",
     "oxlint": "1.79.0",
-    "oxlint-tsgolint": "7.0.2001",
-    "typescript": "7.0.2",
     "vite": "8.2.1"
   }
 }

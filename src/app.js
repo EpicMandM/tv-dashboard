@@ -5,9 +5,7 @@ import {
   runAction,
   sameView,
   saveCache,
-  SEED,
-  type Dashboard,
-  type TvAction
+  SEED
 } from './lib/tv';
 
 const SNAPSHOT_MS = 15 * 1000;
@@ -22,10 +20,10 @@ export function startApp() {
   if (!root) throw new Error('Missing #app');
 
   const initial = loadCache() || SEED;
-  let dashboard: Dashboard = initial;
+  let dashboard = initial;
   let selectedId = initial.actions[0] ? initial.actions[0].id : '';
-  let connection: 'online' | 'updating' | 'offline' = 'updating';
-  let runningId: string | null = null;
+  let connection = 'updating';
+  let runningId = null;
   let notice = '';
   let nowMs = Date.now();
   let scale = 1;
@@ -61,7 +59,7 @@ export function startApp() {
   viewport.appendChild(stage);
   root.appendChild(viewport);
 
-  function escapeHtml(value: string): string {
+  function escapeHtml(value) {
     return value
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -69,17 +67,14 @@ export function startApp() {
       .replace(/"/g, '&quot;');
   }
 
-  function clockText(): string {
+  function clockText() {
     const d = new Date(nowMs);
     const h = d.getHours();
     const m = d.getMinutes();
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
-  function statusView(
-    dashStatus: Dashboard['status'],
-    conn: 'online' | 'updating' | 'offline'
-  ): { cls: string; label: string } {
+  function statusView(dashStatus, conn) {
     if (dashStatus === 'running') return { cls: 'updating', label: 'Готовлю' };
     if (dashStatus === 'error') return { cls: 'offline', label: 'Ошибка' };
     if (dashStatus === 'degraded') return { cls: 'degraded', label: 'Частично' };
@@ -88,7 +83,7 @@ export function startApp() {
     return { cls: 'online', label: 'Онлайн' };
   }
 
-  function hasId(actions: TvAction[], id: string) {
+  function hasId(actions, id) {
     for (let i = 0; i < actions.length; i += 1) {
       const action = actions[i];
       if (action && action.id === id) return true;
@@ -96,8 +91,8 @@ export function startApp() {
     return false;
   }
 
-  function sleep(ms: number) {
-    return new Promise<void>(function (resolve) {
+  function sleep(ms) {
+    return new Promise(function (resolve) {
       window.setTimeout(resolve, ms);
     });
   }
@@ -194,7 +189,7 @@ export function startApp() {
   }
 
   function focusSelected() {
-    return new Promise<void>(function (resolve) {
+    return new Promise(function (resolve) {
       window.setTimeout(function () {
         const button = actionsWrap.querySelector('[data-action-id="' + selectedId + '"]');
         if (button instanceof HTMLButtonElement) button.focus();
@@ -203,7 +198,7 @@ export function startApp() {
     });
   }
 
-  function apply(next: Dashboard) {
+  function apply(next) {
     const prev = dashboard;
     const viewSame = sameView(prev, next);
     if (prev.status === next.status && (prev.action || '') === (next.action || '') && viewSame) {
@@ -230,11 +225,11 @@ export function startApp() {
 
   // Cached id → new snapshot; else host writes running then result; home = back.
   // ACK_MS = give up waiting for a change; WAIT_MS = still-running ceiling.
-  async function waitForSettle(myGen: number, id: string, previous: Dashboard, seenRunning: boolean) {
+  async function waitForSettle(myGen, id, previous, seenRunning) {
     const started = Date.now();
     const deadline = started + WAIT_MS;
     while (myGen === gen && Date.now() < deadline) {
-      let next: Dashboard;
+      let next;
       try {
         next = await getDashboard(abort.signal);
       } catch (err) {
@@ -277,7 +272,7 @@ export function startApp() {
     syncActionClasses();
   }
 
-  async function refresh(silent: boolean) {
+  async function refresh(silent) {
     if (refreshInFlight || waiting) return;
     refreshInFlight = true;
     if (!silent) {
@@ -314,7 +309,7 @@ export function startApp() {
     }
   }
 
-  async function onRun(id: string) {
+  async function onRun(id) {
     if (runningId && id !== 'home') return;
     const myGen = bump();
     selectedId = id;
@@ -342,7 +337,7 @@ export function startApp() {
     }
   }
 
-  function moveSelection(dx: number, dy: number) {
+  function moveSelection(dx, dy) {
     const actions = dashboard.actions;
     let index = 0;
     for (let i = 0; i < actions.length; i += 1) {
@@ -369,7 +364,7 @@ export function startApp() {
     }
   }
 
-  function onKeydown(event: KeyboardEvent) {
+  function onKeydown(event) {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       moveSelection(-1, 0);
@@ -396,7 +391,7 @@ export function startApp() {
     stage.style.transform = scale === 1 ? '' : 'scale(' + scale + ')';
   }
 
-  function onActionsClick(event: MouseEvent) {
+  function onActionsClick(event) {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const button = target.closest('[data-action-id]');
@@ -413,8 +408,8 @@ export function startApp() {
     }, 60000 - (Date.now() % 60000) + 30);
   }
 
-  function onHwKey(event: Event) {
-    const keyName = (event as Event & { keyName?: string }).keyName;
+  function onHwKey(event) {
+    const keyName = event.keyName;
     if (keyName === 'back' || keyName === 'Back' || keyName === 'Exit') {
       event.preventDefault();
     }
