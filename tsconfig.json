@@ -17,7 +17,7 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "resolveJsonModule": true,
-    "types": ["svelte", "vite/client", "node", "bun"]
+    "types": ["vite/client", "node", "bun"]
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "src/**/*.d.ts", "vite.config.ts", "scripts/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "vite.config.ts", "scripts/**/*.ts"]
 }

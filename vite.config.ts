@@ -1,7 +1,6 @@
 // TV artifact: IIFE app.js, classic <script>, base: './', target chrome69.
 // Never type=module in dist, never rollupOptions, :where() stripped.
 import { defineConfig, type Plugin, type PreviewServer, type ViteDevServer } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -223,7 +222,7 @@ function tizenHtml(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [svelte(), mockTvApi(), stripWhereSelectors(), tizenHtml()],
+  plugins: [mockTvApi(), stripWhereSelectors(), tizenHtml()],
   build: {
     target: 'chrome69',
     cssTarget: 'chrome69',

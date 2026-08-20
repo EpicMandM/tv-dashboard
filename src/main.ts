@@ -1,7 +1,6 @@
 import './lib/polyfills';
-import { mount } from 'svelte';
-import App from './App.svelte';
 import './app.css';
+import { startApp } from './app';
 
 function bootError(message: string) {
   const el = document.getElementById('app') || document.body;
@@ -20,10 +19,8 @@ window.onunhandledrejection = function (event) {
   bootError(reason && reason.stack ? reason.stack : String(reason));
 };
 
-const target = document.getElementById('app');
-if (!target) throw new Error('Missing #app');
 try {
-  mount(App, { target });
+  startApp();
 } catch (err) {
   bootError(err && (err as Error).stack ? String((err as Error).stack) : String(err));
 }

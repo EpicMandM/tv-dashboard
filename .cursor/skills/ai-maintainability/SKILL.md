@@ -24,14 +24,14 @@ This repo is a **Tizen 5.5 / Chromium 69 widget**, not a homelab, backend, or ge
 
 - **Runtime**: Tizen 5.5, Chromium 69. TypeScript target ES2018. Vite build is IIFE `app.js` + classic `<script>`, `base: './'`. Do not introduce ESM-in-browser, `type="module"`, or CSS the TV cannot parse (`:where()` is stripped at build; do not rely on it).
 - **Source style**: write JS the TV can run after the chrome69 transpile. Avoid optional chaining and other syntax the existing code already spells out with `&&` / `indexOf` / classic `function`. Keep the `src/lib/polyfills.ts` shims (`globalThis`, `queueMicrotask`, `replaceAll`) unless the need is gone.
-- **Shape**: one 1920×1080 D-pad screen (`src/App.svelte` + `src/lib/tv.ts`). Host JSON drives copy and buttons. No router, store library, UI kit, or CSS framework.
+- **Shape**: one 1920×1080 D-pad screen (`src/app.ts` + `src/lib/tv.ts` + `src/app.css`). Host JSON drives copy and buttons. No UI framework, router, store library, or CSS framework.
 - **Host contract**: `GET /tv` = screen. `POST /actions/:id` → 204. `home` = back. Cached `plan-tomorrow` / `what-missed` switch the view; else the host writes `running` then the result. `VITE_API_BASE_URL` empty = Vite mock from `data/tv.json`; TV builds use `.env.production`. Payload limits live in `isDashboard` — do not silently widen them.
 - **Deploy**: `scripts/tv.ts` packages a signed `.wgt` and talks to the TV via `sdb`. `scripts/vendor/` is Tizen signing — treat as frozen. Do not add a second packaging path.
 - **Out of scope here**: Home Assistant, host `:8787` implementation, LLM planning, and other repos. Do not grow a backend into this widget.
 
 ## When changing code
 
-1. Match the local pattern (Svelte 5 runes, `$state.raw` dashboard, Russian user-facing copy, 2-column remote grid).
+1. Match the local pattern (vanilla TypeScript DOM in `src/app.ts`, Russian user-facing copy, 2-column remote grid).
 2. Delete what the change makes unused (dead actions, mock branches, CSS, types, env).
 3. Do not add Python quality gates, IaC, or homelab conventions. This repo is Bun + Vite + Tizen.
 4. After a code change, `bun run build` must succeed. That is the TV artifact check.

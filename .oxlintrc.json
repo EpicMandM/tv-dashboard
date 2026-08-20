@@ -65,7 +65,7 @@
   },
   "overrides": [
     {
-      "files": ["src/**/*.ts", "src/**/*.svelte"],
+      "files": ["src/**/*.ts"],
       "env": { "browser": true }
     },
     {
