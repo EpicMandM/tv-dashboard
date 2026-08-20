@@ -8,7 +8,6 @@ bun run build     # TV artifact check
 bun run deploy    # build, sign, install, launch
 bun run package   # signed .wgt
 bun run launch
-bun run watch
 ```
 
 GET `/tv` = screen. POST `/actions/:id` → 204. `home` = back.

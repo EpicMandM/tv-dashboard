@@ -10,7 +10,6 @@
     "package": "bun run build && bun scripts/tv.js package",
     "deploy": "bun run build && bun scripts/tv.js deploy",
     "launch": "bun scripts/tv.js launch",
-    "watch": "bun scripts/tv.js watch",
     "lint": "oxlint --deny-warnings"
   },
   "devDependencies": {
