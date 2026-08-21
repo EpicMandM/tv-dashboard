@@ -45,6 +45,8 @@ export function startApp() {
   statusEl.className = 'status';
   const summaryEl = document.createElement('section');
   summaryEl.className = 'summary';
+  const peopleEl = document.createElement('section');
+  peopleEl.className = 'people-reminders';
   const actionsWrap = document.createElement('div');
   actionsWrap.className = 'actions-wrap';
   const actionsEl = document.createElement('div');
@@ -55,6 +57,7 @@ export function startApp() {
   actionsWrap.appendChild(actionsEl);
   stage.appendChild(top);
   stage.appendChild(summaryEl);
+  stage.appendChild(peopleEl);
   stage.appendChild(actionsWrap);
   viewport.appendChild(stage);
   root.appendChild(viewport);
@@ -118,6 +121,11 @@ export function startApp() {
     clockEl.textContent = clockText();
     statusEl.className = 'status is-' + status.cls;
     statusEl.innerHTML =
+      (dashboard.reading
+        ? '<span class="reading-mark">📖 ' +
+          escapeHtml(dashboard.reading.reading_time || 'На сегодня') +
+          '</span>'
+        : '') +
       '<span class="status-dot"></span><span>' +
       escapeHtml(status.label) +
       '</span>' +
@@ -152,6 +160,19 @@ export function startApp() {
     } else {
       summaryEl.innerHTML = '<p class="summary-text">' + escapeHtml(dashboard.summary) + '</p>';
     }
+
+    let peopleHtml = '';
+    const people = dashboard.people || [];
+    for (let i = 0; i < people.length; i += 1) {
+      const reminder = people[i];
+      const icon = reminder.kind === 'birthday' ? '🎂' : '👋';
+      peopleHtml +=
+        '<article class="people-card is-' + reminder.kind + '"><span class="people-icon">' + icon +
+        '</span><span><strong>' + escapeHtml(reminder.name) + '</strong><small>' +
+        escapeHtml(reminder.detail) + '</small></span></article>';
+    }
+    peopleEl.innerHTML = peopleHtml;
+    peopleEl.className = 'people-reminders' + (people.length ? '' : ' is-empty');
 
     let buttons = '';
     for (let i = 0; i < dashboard.actions.length; i += 1) {

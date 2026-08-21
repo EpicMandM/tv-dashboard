@@ -57,6 +57,15 @@ body {
   color: #9aa8b8;
 }
 
+.reading-mark {
+  margin-right: 28px;
+  padding: 8px 16px;
+  border: 1px solid #52657a;
+  border-radius: 999px;
+  color: #c5d0dc;
+  font-size: 24px;
+}
+
 .status-dot {
   width: 18px;
   height: 18px;
@@ -106,6 +115,57 @@ body {
   line-height: 1.35;
   color: #d5dee8;
   font-weight: 400;
+}
+
+.people-reminders {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.people-reminders.is-empty {
+  display: none;
+}
+
+.people-card {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #34465a;
+  border-radius: 14px;
+  background: #141d27;
+}
+
+.people-card.is-birthday {
+  border-color: #725b88;
+}
+
+.people-icon {
+  flex: 0 0 auto;
+  font-size: 30px;
+}
+
+.people-card strong,
+.people-card small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people-card strong {
+  color: #eef3f8;
+  font-size: 24px;
+}
+
+.people-card small {
+  margin-top: 4px;
+  color: #9facbb;
+  font-size: 19px;
 }
 
 .digest {
@@ -166,7 +226,7 @@ body {
 
 .actions-wrap {
   flex: 0 0 auto;
-  margin-top: 36px;
+  margin-top: 28px;
 }
 
 .actions {

@@ -22,6 +22,32 @@ export function isDashboard(value) {
     return false;
   }
   if (p.action !== undefined && (typeof p.action !== 'string' || p.action.length > 64)) return false;
+  if (p.reading !== undefined) {
+    const reading = p.reading;
+    if (
+      !reading ||
+      typeof reading !== 'object' ||
+      typeof reading.title !== 'string' ||
+      !reading.title ||
+      typeof reading.url !== 'string' ||
+      !reading.url ||
+      typeof reading.reading_time !== 'string'
+    ) return false;
+  }
+  if (p.people !== undefined) {
+    if (!Array.isArray(p.people) || p.people.length > 8) return false;
+    for (let i = 0; i < p.people.length; i += 1) {
+      const reminder = p.people[i];
+      if (
+        !reminder ||
+        (reminder.kind !== 'birthday' && reminder.kind !== 'reach_out') ||
+        typeof reminder.name !== 'string' ||
+        !reminder.name ||
+        typeof reminder.detail !== 'string' ||
+        !reminder.detail
+      ) return false;
+    }
+  }
   if (p.columns !== undefined && p.columns !== null) {
     if (!Array.isArray(p.columns) || p.columns.length > 3) return false;
     const titles = {};
@@ -69,6 +95,20 @@ export function isDashboard(value) {
 export function sameView(a, b) {
   if (a.summary !== b.summary) return false;
   if (a.actions.length !== b.actions.length) return false;
+  const ar = a.reading;
+  const br = b.reading;
+  if (!!ar !== !!br) return false;
+  if (ar && br && (ar.title !== br.title || ar.url !== br.url || ar.reading_time !== br.reading_time)) {
+    return false;
+  }
+  const ap = a.people || [];
+  const bp = b.people || [];
+  if (ap.length !== bp.length) return false;
+  for (let i = 0; i < ap.length; i += 1) {
+    if (ap[i].kind !== bp[i].kind || ap[i].name !== bp[i].name || ap[i].detail !== bp[i].detail) {
+      return false;
+    }
+  }
   for (let i = 0; i < a.actions.length; i += 1) {
     const left = a.actions[i];
     const right = b.actions[i];
@@ -105,6 +145,18 @@ function copyDashboard(data) {
     status: data.status
   };
   if (data.action !== undefined) out.action = data.action;
+  if (data.reading !== undefined) {
+    out.reading = {
+      title: data.reading.title,
+      url: data.reading.url,
+      reading_time: data.reading.reading_time
+    };
+  }
+  if (Array.isArray(data.people)) {
+    out.people = data.people.map(function (reminder) {
+      return { kind: reminder.kind, name: reminder.name, detail: reminder.detail };
+    });
+  }
   if (Array.isArray(data.columns)) {
     const columns = [];
     for (let i = 0; i < data.columns.length; i += 1) {
