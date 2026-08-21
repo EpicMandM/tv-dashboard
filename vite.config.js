@@ -38,14 +38,14 @@ function hasAction(data, id) {
   return false;
 }
 
-function fromView(id, view) {
+function fromView(id, view, dashboard) {
   if (!view || typeof view !== 'object') return null;
   const summary = typeof view.summary === 'string' && view.summary ? view.summary : '';
   const candidate = {
-    summary: summary || (id === 'home' ? readSnapshot().dashboard.summary : 'Готово.'),
+    summary: summary || (id === 'home' ? dashboard.summary : 'Готово.'),
     actions:
       id === 'home'
-        ? readSnapshot().dashboard.actions
+        ? dashboard.actions
         : [
             { id: 'home', title: 'Назад' },
             { id, title: 'Обновить' }
@@ -65,7 +65,8 @@ function startJob(id) {
   };
   if (jobTimer) clearTimeout(jobTimer);
   jobTimer = setTimeout(() => {
-    live = fromView(id, readSnapshot().views[id]) || {
+    const snapshot = readSnapshot();
+    live = fromView(id, snapshot.views[id], snapshot.dashboard) || {
       summary:
         id === 'what-missed'
           ? 'Проверил прошедшее. Открытых хвостов нет.'
@@ -121,7 +122,8 @@ function mockTvApi() {
         }
         const now = current();
         const refreshing = hasAction(now, 'home') && hasAction(now, id);
-        const cached = fromView(id, readSnapshot().views[id]);
+        const snapshot = readSnapshot();
+        const cached = fromView(id, snapshot.views[id], snapshot.dashboard);
         if (cached && !refreshing) {
           if (jobTimer) clearTimeout(jobTimer);
           live = cached;

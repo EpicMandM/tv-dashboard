@@ -83,13 +83,15 @@ export function startApp() {
     return { cls: 'online', label: 'Онлайн' };
   }
 
-  function hasId(actions, id) {
+  function actionIndex(actions, id) {
     for (let i = 0; i < actions.length; i += 1) {
       const action = actions[i];
-      if (action && action.id === id) return true;
+      if (action && action.id === id) return i;
     }
-    return false;
+    return -1;
   }
+
+  function hasId(actions, id) { return actionIndex(actions, id) !== -1; }
 
   function sleep(ms) {
     return new Promise(function (resolve) {
@@ -188,6 +190,11 @@ export function startApp() {
     }
   }
 
+  function paintActivity() {
+    paintChrome();
+    syncActionClasses();
+  }
+
   function focusSelected() {
     return new Promise(function (resolve) {
       window.setTimeout(function () {
@@ -243,8 +250,7 @@ export function startApp() {
         seenRunning = true;
         connection = 'updating';
         runningId = next.action || id;
-        paintChrome();
-        syncActionClasses();
+        paintActivity();
         await sleep(POLL_MS);
         continue;
       }
@@ -258,8 +264,7 @@ export function startApp() {
         connection = next.status === 'error' ? 'offline' : 'online';
         runningId = null;
         notice = next.status === 'error' ? 'Не удалось обновить' : '';
-        paintChrome();
-        syncActionClasses();
+        paintActivity();
         return;
       }
       await sleep(POLL_MS);
@@ -268,8 +273,7 @@ export function startApp() {
     notice = 'Всё ещё готовится';
     connection = 'online';
     runningId = null;
-    paintChrome();
-    syncActionClasses();
+    paintActivity();
   }
 
   async function refresh(silent) {
@@ -285,8 +289,7 @@ export function startApp() {
       if (next.status === 'running') {
         connection = 'updating';
         runningId = next.action || runningId;
-        paintChrome();
-        syncActionClasses();
+        paintActivity();
         const myGen = gen;
         waiting = true;
         try {
@@ -297,8 +300,7 @@ export function startApp() {
       } else {
         connection = 'online';
         runningId = null;
-        paintChrome();
-        syncActionClasses();
+        paintActivity();
       }
     } catch (err) {
       if (isAbortError(err)) return;
@@ -316,8 +318,7 @@ export function startApp() {
     runningId = id === 'home' ? runningId : id;
     notice = '';
     connection = 'updating';
-    paintChrome();
-    syncActionClasses();
+    paintActivity();
     const previous = dashboard;
     waiting = true;
     try {
@@ -329,8 +330,7 @@ export function startApp() {
       notice = 'Не удалось выполнить';
       connection = 'offline';
       runningId = null;
-      paintChrome();
-      syncActionClasses();
+      paintActivity();
     } finally {
       if (myGen === gen) waiting = false;
       await focusSelected();
@@ -339,11 +339,8 @@ export function startApp() {
 
   function moveSelection(dx, dy) {
     const actions = dashboard.actions;
-    let index = 0;
-    for (let i = 0; i < actions.length; i += 1) {
-      const action = actions[i];
-      if (action && action.id === selectedId) index = i;
-    }
+    const selectedIndex = actionIndex(actions, selectedId);
+    const index = selectedIndex === -1 ? 0 : selectedIndex;
     const cols = 2;
     const col = index % cols;
     const row = (index - col) / cols;
